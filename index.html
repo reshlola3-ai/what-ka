@@ -295,7 +295,7 @@
     // 1. 加载 face-api 模型 (使用 CDN 提供的轻量 tiny 模型)
     async function loadModels() {
         statusText.innerText = "LOADING AI MODELS [■■■□□]";
-        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
         try {
             await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
             modelsLoaded = true;
