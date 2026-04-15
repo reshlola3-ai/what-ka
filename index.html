@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>你什么咖？ | Y2K Cyber-Cup Scanner</title>
+    <!-- 引入 face-api.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- 引入 html2canvas 用于截图 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* Y2K 极简风设计基础 */
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #111111;
+            --accent-pink: #ff00ff;
+            --accent-blue: #00ffff;
+            --border-radius: 12px;
+            --border-heavy: 3px solid #111111;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航 / 装饰 */
+        header {
+            padding: 1rem;
+            border-bottom: var(--border-heavy);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="%23ccc"/></svg>');
+        }
+
+        .logo {
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            text-shadow: 2px 2px 0 var(--accent-pink);
+        }
+
+        .version {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--text-color);
+            color: var(--bg-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* 容器 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            position: relative;
+        }
+
+        /* 视频容器 (相框效果) */
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 3/4;
+            border: var(--border-heavy);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            background: #000;
+            box-shadow: 8px 8px 0 var(--accent-blue);
+            margin-bottom: 2rem;
+        }
+
+        video, canvas#overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 镜像 */
+        }
+
+        canvas#overlay {
+            z-index: 10;
+        }
+
+        /* Y2K 准星装饰 */
+        .crosshair {
+            position: absolute;
+            z-index: 5;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 0, 255, 0.5);
+            pointer-events: none;
+        }
+        .ch-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .ch-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+        .ch-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+        .ch-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+        /* 状态文本 */
+        #status-text {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1rem;
+            height: 2em;
+            text-transform: uppercase;
+        }
+
+        /* 按钮 */
+        button {
+            appearance: none;
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            border: var(--border-heavy);
+            border-radius: 50px;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: 900;
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 var(--accent-pink);
+            transition: transform 0.1s, box-shadow 0.1s;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 var(--accent-pink);
+        }
+
+        button:disabled {
+            background-color: #999;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        /* 结果面板 */
+        #result-panel {
+            display: none;
+            position: absolute;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: var(--bg-color);
+            border: var(--border-heavy);
+            border-radius: var(--border-radius);
+            box-shadow: 12px 12px 0 rgba(0,0,0,0.1);
+            z-index: 20;
+            padding: 1.5rem;
+        }
+
+        #result-image {
+            width: 100%;
+            border: 2px solid #000;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            filter: contrast(1.2) saturate(1.1);
+        }
+
+        .result-stamp {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: var(--accent-pink);
+            color: #fff;
+            font-weight: 900;
+            font-size: 2rem;
+            padding: 10px 20px;
+            transform: rotate(15deg);
+            border: 3px solid #111;
+            box-shadow: 4px 4px 0 #111;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .result-desc {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            background: #fff;
+            padding: 10px;
+            border: 2px solid #111;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-group button {
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            box-shadow: 3px 3px 0 var(--accent-blue);
+        }
+
+        /* 隐藏 canvas 用于截图 */
+        canvas#capture-canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">你什么咖?!</div>
+    <div class="version">v.Y2K</div>
+</header>
+
+<main>
+    <div id="status-text">INITIALIZING... PLEASE WAIT</div>
+    
+    <div id="video-container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="crosshair ch-tl"></div>
+        <div class="crosshair ch-tr"></div>
+        <div class="crosshair ch-bl"></div>
+        <div class="crosshair ch-br"></div>
+    </div>
+
+    <button id="action-btn" disabled>Loading Models...</button>
+
+    <!-- 结果面板 -->
+    <div id="result-panel">
+        <div class="result-stamp" id="result-cup">B咖</div>
+        <img id="result-image" src="" alt="Captured Face">
+        <div class="result-title">FACIAL-CUP ANALYSIS</div>
+        <div class="result-desc" id="result-text">
+            计算中...
+        </div>
+        <div class="btn-group">
+            <button onclick="resetApp()">再测一次</button>
+            <button onclick="alert('截屏保存分享吧！(Y2K Style)')" style="background:var(--accent-pink)">保存分享</button>
+        </div>
+    </div>
+</main>
+
+<canvas id="capture-canvas"></canvas>
+
+<script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const actionBtn = document.getElementById('action-btn');
+    const statusText = document.getElementById('status-text');
+    const resultPanel = document.getElementById('result-panel');
+    const resultImage = document.getElementById('result-image');
+    const resultCup = document.getElementById('result-cup');
+    const resultText = document.getElementById('result-text');
+
+    let modelsLoaded = false;
+    let isScanning = false;
+
+    // Y2K 胡说八道文案库
+    const RESULTS = {
+        'A': { cup: 'A咖', text: '骨相修长，长脸鉴定完毕。脂肪绝缘体，高智感拉满。根据《面部-胸部正交定律》，确认为坦荡 A 咖。Flat is Justice.' },
+        'B': { cup: 'B咖', text: '长宽比处于黄金分割的暧昧地带。进可攻退可守，薛定谔的 B 咖。多吃一口长脸上，少吃一口掉胸上。' },
+        'C': { cup: 'C咖', text: '脸庞略宽，胶原蛋白走位极其精准。根据《圆脸引力假说》，下沉的脂肪完美支撑起了 C 咖的尊严。' },
+        'D': { cup: 'D咖', text: '横向发展面相，大脸盘子实锤！但这绝对是值得骄傲的。大脸 = 大基数 = 灭世 D 咖！胸怀天下，恐怖如斯。' }
+    };
+
+    // 1. 加载 face-api 模型 (使用 CDN 提供的轻量 tiny 模型)
+    async function loadModels() {
+        statusText.innerText = "LOADING AI MODELS [■■■□□]";
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            modelsLoaded = true;
+            startCamera();
+        } catch (e) {
+            statusText.innerText = "ERR: NETWORK BLOCK";
+            console.error(e);
+        }
+    }
+
+    // 2. 启动摄像头
+    async function startCamera() {
+        statusText.innerText = "ACCESSING CAM [■■■■□]";
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user', width: 400, height: 533 } 
+            });
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                video.play();
+                statusText.innerText = "SYSTEM READY // FACE CAM";
+                actionBtn.innerText = "测测我是什么咖";
+                actionBtn.disabled = false;
+            };
+        } catch (err) {
+            statusText.innerText = "ERR: CAM DENIED";
+            actionBtn.innerText = "需要摄像头权限";
+        }
+    }
+
+    // 3. 点击扫描
+    actionBtn.addEventListener('click', async () => {
+        if (!modelsLoaded) return;
+        isScanning = true;
+        actionBtn.disabled = true;
+        actionBtn.innerText = "SCANNING...";
+        
+        // 假装处理的动画
+        const msgs = ["ANALYZING RATIO...", "CHECKING FAT DISTRIBUTION...", "CALCULATING CUP SIZE..."];
+        let mIdx = 0;
+        const msgInt = setInterval(() => {
+            statusText.innerText = msgs[mIdx % msgs.length];
+            mIdx++;
+        }, 600);
+
+        // 截图
+        captureFrame();
+
+        // 运行人脸检测
+        const displaySize = { width: video.videoWidth, height: video.videoHeight };
+        faceapi.matchDimensions(overlay, displaySize);
+        
+        try {
+            const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions());
+            clearInterval(msgInt);
+            
+            if (detections) {
+                // 画出识别框(Y2K风格赛博框)
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                const ctx = overlay.getContext('2d');
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(
+                    displaySize.width - resizedDetections.box.x - resizedDetections.box.width, // 镜像坐标处理
+                    resizedDetections.box.y, 
+                    resizedDetections.box.width, 
+                    resizedDetections.box.height
+                );
+
+                // 核心算法：长宽比
+                // 宽高比 = 宽 / 高。
+                // 宽脸: ratio 较大 (> 0.8) -> C/D
+                // 长脸: ratio 较小 (< 0.75) -> A/B
+                const width = resizedDetections.box.width;
+                const height = resizedDetections.box.height;
+                const ratio = width / height;
+                
+                let cupLevel = 'B';
+                if (ratio < 0.73) cupLevel = 'A';
+                else if (ratio < 0.78) cupLevel = 'B';
+                else if (ratio < 0.85) cupLevel = 'C';
+                else cupLevel = 'D';
+
+                showResult(cupLevel);
+            } else {
+                statusText.innerText = "ERR: NO FACE DETECTED";
+                actionBtn.innerText = "没看到脸，重试";
+                actionBtn.disabled = false;
+            }
+        } catch(e) {
+            clearInterval(msgInt);
+            statusText.innerText = "ERR: ANALYSIS FAILED";
+            actionBtn.disabled = false;
+            actionBtn.innerText = "重试";
+        }
+    });
+
+    // 4. 截取当前视频帧并镜像
+    function captureFrame() {
+        const cCanvas = document.getElementById('capture-canvas');
+        cCanvas.width = video.videoWidth;
+        cCanvas.height = video.videoHeight;
+        const ctx = cCanvas.getContext('2d');
+        // 镜像翻转
+        ctx.translate(cCanvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, cCanvas.width, cCanvas.height);
+        resultImage.src = cCanvas.toDataURL('image/jpeg', 0.8);
+    }
+
+    // 5. 展示结果
+    function showResult(cup) {
+        const res = RESULTS[cup];
+        resultCup.innerText = res.cup;
+        resultText.innerText = res.text;
+        
+        statusText.innerText = "ANALYSIS COMPLETE";
+        resultPanel.style.display = "block";
+    }
+
+    function resetApp() {
+        resultPanel.style.display = "none";
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        actionBtn.innerText = "测测我是什么咖";
+        actionBtn.disabled = false;
+        statusText.innerText = "SYSTEM READY // FACE CAM";
+    }
+
+    // 启动
+    loadModels();
+</script>
+</body>
+</html>
