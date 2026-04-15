@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <script>
+        async function testLoad() {
+            console.log('Testing face-api.js model loading...');
+            const MODEL_URL = './models';
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                console.log('SUCCESS: Model loaded!');
+                document.body.innerHTML = '<h1 style="color:green">✓ Model Loaded Successfully</h1>';
+            } catch (e) {
+                console.error('ERROR:', e);
+                document.body.innerHTML = '<h1 style="color:red">✗ Model Load Failed</h1><pre>' + e.toString() + '</pre>';
+            }
+        }
+        testLoad();
+    </script>
+</body>
+</html>
