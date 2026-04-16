@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你什么咖？</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            border: 3px solid #4ecdc4;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+        .scan-button {
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(255,107,107,0.5);
+        }
+        .scan-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255,107,107,0.8);
+        }
+        .scan-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            font-size: 0.9em;
+            color: #4ecdc4;
+            margin: 10px 0;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .result-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #45b7d1;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        .stamp {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50%;
+            transform: rotate(15deg);
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 0 15px rgba(255,107,107,0.8);
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .action-button {
+            background: #45b7d1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .action-button:hover {
+            background: #4ecdc4;
+            transform: scale(1.05);
+        }
+        .footer {
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.8em;
+        }
+        .cup-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .cup-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 10px;
+            flex: 1;
+            min-width: 120px;
+        }
+        .cup-item.A { border-left: 4px solid #ff6b6b; }
+        .cup-item.B { border-left: 4px solid #4ecdc4; }
+        .cup-item.C { border-left: 4px solid #45b7d1; }
+        .cup-item.D { border-left: 4px solid #96ceb4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>你什么咖？</h1>
+            <p class="subtitle">基于《面部-胸部能量守恒定律》的科学鉴定系统</p>
+        </div>
+
+        <div class="cup-info">
+            <div class="cup-item A">
+                <strong>A咖</strong><br>坦荡如砥
+            </div>
+            <div class="cup-item B">
+                <strong>B咖</strong><br>薛定谔的胸
+            </div>
+            <div class="cup-item C">
+                <strong>C咖</strong><br>C位出道
+            </div>
+            <div class="cup-item D">
+                <strong>D咖</strong><br>胸怀天下
+            </div>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <div class="stamp" id="stamp">?</div>
+        </div>
+
+        <div class="status" id="status">LOADING AI MODELS [□□□□□]</div>
+
+        <button class="scan-button" id="scanButton" disabled>点击开启摄像头</button>
+
+        <div class="result-card" id="resultCard">
+            <div id="resultText"></div>
+            <div class="buttons">
+                <button class="action-button" id="saveButton">保存图片</button>
+                <button class="action-button" id="retryButton">重新扫描</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>⚠️ 本系统基于伪科学原理，仅供娱乐，请勿当真</p>
+            <p>© 2026 你什么咖鉴定中心 | 技术支持：Hermes Agent</p>
+        </div>
+    </div>
+
+    <!-- 依赖库 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- 卡通模板 -->
+    <script defer src="templates_fixed.js"></script>
+
+    <script>
+// 添加调试信息
+console.log("=== 调试脚本开始 ===");
+
+// 检查关键元素
+console.log("video元素:", document.getElementById('video'));
+console.log("scanButton元素:", document.getElementById('scanButton'));
+console.log("statusText元素:", document.getElementById('status'));
+
+// 检查函数是否存在
+console.log("loadModels函数:", typeof loadModels);
+console.log("startCamera函数:", typeof startCamera);
+console.log("showResult函数:", typeof showResult);
+console.log("generateCartoonImage函数:", typeof generateCartoonImage);
+console.log("mergeFaceToTemplate函数:", typeof mergeFaceToTemplate);
+
+// 检查模型加载状态
+console.log("faceapi对象:", typeof faceapi);
+if (typeof faceapi !== 'undefined') {
+    console.log("faceapi.nets:", faceapi.nets);
+}
+
+console.log("=== 调试脚本结束 ===");
+        // 全局变量
+        let isScanning = false;
+        let stream = null;
+        
+        // DOM元素
+        const video = document.getElementById('video');
+        const scanButton = document.getElementById('scanButton');
+        const statusText = document.getElementById('status');
+        const resultCard = document.getElementById('resultCard');
+        const resultText = document.getElementById('resultText');
+        const stampText = document.getElementById('stamp');
+        const saveButton = document.getElementById('saveButton');
+        const retryButton = document.getElementById('retryButton');
+        
+        // 咖位映射
+        const CUP_MAP = {
+            'A': { cup: '坦荡A咖', text: '你的面部能量过于集中，导致胸部能量严重不足。建议：多吃木瓜，少熬夜。' },
+            'B': { cup: '薛定谔B咖', text: '你的面部能量与胸部能量处于量子纠缠态。建议：穿对内衣，自信满满。' },
+            'C': { cup: 'C位大咖', text: '你的面部与胸部能量分配完美，达到了黄金比例。建议：保持现状，你就是C位！' },
+            'D': { cup: '灭世D咖', text: '警告！你的胸部能量已严重溢出，可能引发时空扭曲。建议：注意安全，避免碰撞。' }
+        };
+        
+        // 1. 加载AI模型
+        async function loadModels() {
+            try {
+                statusText.innerText = "LOADING AI MODELS [■□□□□]";
+                const MODEL_URL = './models';
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                statusText.innerText = "MODELS LOADED [■■■■■]";
+                scanButton.disabled = false;
+                scanButton.innerText = "点击开启摄像头";
+            } catch (e) {
+                console.error('Model load error:', e);
+                statusText.innerText = "MODEL LOAD FAILED";
+                // 即使模型加载失败，也允许继续（使用随机结果）
+                scanButton.disabled = false;
+                scanButton.innerText = "点击开启摄像头";
+            }
+        }
+        
+        // 2. 开启摄像头
+        async function startCamera() {
+            debugLog("开始启动摄像头");
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 640, height: 480 },
+                    audio: false
+                });
+                video.srcObject = stream;
+                statusText.innerText = "CAMERA READY [■■■■■]";
+                scanButton.innerText = "长按扫描你的咖位";
+                scanButton.onmousedown = startScan;
+                scanButton.ontouchstart = startScan;
+                scanButton.onmouseup = stopScan;
+                scanButton.ontouchend = stopScan;
+            } catch (e) {
+                console.error('Camera error:', e);
+                statusText.innerText = "CAMERA ACCESS DENIED";
+                alert('请允许摄像头权限以使用本功能');
+            }
+        }
+        
+        // 3. 开始扫描
+        function startScan() {
+            debugLog("开始扫描");
+            if (isScanning) return;
+            isScanning = true;
+            statusText.innerText = "SCANNING... [■■■□□]";
+        }
+        
+        // 4. 停止扫描（分析）
+        async function stopScan() {
+            if (!isScanning) return;
+            isScanning = false;
+            debugLog("停止扫描，开始分析");
+            
+            // 直接给一个随机结果，跳过复杂的人脸检测
+            const randomCup = ["A", "B", "C", "D"][Math.floor(Math.random() * 4)];
+            const ratios = [0.65, 0.78, 0.92, 1.05];
+            const ratio = ratios[Math.floor(Math.random() * 4)];
+            
+            showResult(randomCup, `面部长宽比: ${ratio.toFixed(2)} (测试模式)`);
+        }
+        
+        // 5. 显示结果
+        // 调试函数
+        function debugLog(msg) {
+            console.log("[DEBUG]", msg);
+            if (typeof statusText !== "undefined") {
+                statusText.innerText = "DEBUG: " + msg.substring(0, 30);
+            }
+        }
+        function showResult(cupType, analysisNote) {
+            debugLog("显示结果: " + cupType);
+            const cupInfo = CUP_MAP[cupType];
+            stampText.innerText = cupInfo.cup;
+            
+            // 先创建结果HTML（包含画布）
+            resultText.innerHTML = `
+                <h3>${cupInfo.cup} - ${cupType.toUpperCase()} Cup</h3>
+                <p>${cupInfo.text}</p>
+                <p><small>${analysisNote}</small></p>
+                <p>⚠️ 本结果基于《面部-胸部能量守恒定律》计算，仅供娱乐。</p>
+                <div id="cartoonContainer" style="margin: 20px 0; text-align: center;">
+                    <canvas id="cartoonCanvas" width="400" height="500" style="max-width: 100%; border: 3px solid black; border-radius: 12px;"></canvas>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">你的专属卡通形象已生成！</p>
+                </div>
+            `;
+            
+            resultCard.style.display = 'block';
+            statusText.innerText = "ANALYSIS COMPLETE [█████]";
+            isScanning = false;
+            
+            // 滚动到结果
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+            
+            // 延迟一点时间，确保DOM更新完成后再生成图片
+            setTimeout(() => {
+                generateCartoonImage(cupType);
+            }, 100);
+        }
+        
+        // 6. 生成卡通图片
+        async function generateCartoonImage(cupType) {
+            try {
+                // 获取用户的自拍（从视频中截取）
+                const video = document.getElementById('video');
+                if (!video || !video.videoWidth) {
+                    console.error('Video not ready');
+                    return;
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                // 创建图片对象
+                const faceImage = new Image();
+                faceImage.crossOrigin = 'anonymous';
+                faceImage.src = canvas.toDataURL('image/jpeg', 0.8);
+                
+                faceImage.onload = () => {
+                    // 获取卡通画布
+                    const cartoonCanvas = document.getElementById('cartoonCanvas');
+                    if (!cartoonCanvas) {
+                        console.error('Cartoon canvas not found');
+                        return;
+                    }
+                    
+                    // 合并脸部和模板
+                    mergeFaceToTemplate(faceImage, cupType, cartoonCanvas);
+                    
+                    // 更新保存按钮，保存卡通图片
+                    saveButton.onclick = async () => {
+                        statusText.innerText = "SAVING IMAGE...";
+                        try {
+                            const link = document.createElement('a');
+                            link.download = `你什么咖-${cupType}咖.png`;
+                            link.href = cartoonCanvas.toDataURL('image/png');
+                            link.click();
+                            statusText.innerText = "IMAGE SAVED!";
+                        } catch (e) {
+                            console.error('Save error:', e);
+                            statusText.innerText = "SAVE FAILED";
+                        }
+                    };
+                };
+                
+                faceImage.onerror = (e) => {
+                    console.error('Face image load error:', e);
+                };
+            } catch (e) {
+                console.error('Cartoon generation error:', e);
+            }
+        }
+        
+        // 7. 保存图片（原始功能保留）
+        saveButton.onclick = async () => {
+            statusText.innerText = "SAVING IMAGE...";
+            try {
+                const canvas = await html2canvas(resultCard);
+                const link = document.createElement('a');
+                link.download = `你什么咖-${stampText.innerText}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                statusText.innerText = "IMAGE SAVED!";
+            } catch (e) {
+                console.error('Save error:', e);
+                statusText.innerText = "SAVE FAILED";
+            }
+        };
+        
+        // 8. 重试
+        retryButton.onclick = () => {
+            resultCard.style.display = 'none';
+            statusText.innerText = "CAMERA READY [■■■■■]";
+        };
+        
+        // 按钮事件
+        scanButton.onclick = startCamera;
+        
+        // 页面加载完成后启动
+        window.addEventListener('DOMContentLoaded', () => {
+            loadModels();
+        });
+    </script>
+</body>
+</html>
