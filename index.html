@@ -199,6 +199,28 @@
     <script defer src="templates_fixed.js"></script>
 
     <script>
+// 添加调试信息
+console.log("=== 调试脚本开始 ===");
+
+// 检查关键元素
+console.log("video元素:", document.getElementById('video'));
+console.log("scanButton元素:", document.getElementById('scanButton'));
+console.log("statusText元素:", document.getElementById('status'));
+
+// 检查函数是否存在
+console.log("loadModels函数:", typeof loadModels);
+console.log("startCamera函数:", typeof startCamera);
+console.log("showResult函数:", typeof showResult);
+console.log("generateCartoonImage函数:", typeof generateCartoonImage);
+console.log("mergeFaceToTemplate函数:", typeof mergeFaceToTemplate);
+
+// 检查模型加载状态
+console.log("faceapi对象:", typeof faceapi);
+if (typeof faceapi !== 'undefined') {
+    console.log("faceapi.nets:", faceapi.nets);
+}
+
+console.log("=== 调试脚本结束 ===");
         // 全局变量
         let isScanning = false;
         let stream = null;
@@ -242,6 +264,7 @@
         
         // 2. 开启摄像头
         async function startCamera() {
+            debugLog("开始启动摄像头");
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: 640, height: 480 },
@@ -263,6 +286,7 @@
         
         // 3. 开始扫描
         function startScan() {
+            debugLog("开始扫描");
             if (isScanning) return;
             isScanning = true;
             statusText.innerText = "SCANNING... [■■■□□]";
@@ -272,51 +296,26 @@
         async function stopScan() {
             if (!isScanning) return;
             isScanning = false;
-            statusText.innerText = "ANALYZING... [■■■■□]";
+            debugLog("停止扫描，开始分析");
             
-            try {
-                // 使用face-api.js检测人脸
-                const detections = await faceapi.detectAllFaces(video, 
-                    new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-                
-                if (detections.length === 0) {
-                    showResult('A', "系统未检测到人脸。可能你离得太远，或者脸太小了。默认判定为：坦荡 A 咖！");
-                    return;
-                }
-                
-                // 获取第一个检测到的人脸
-                const face = detections[0];
-                const landmarks = face.landmarks;
-                
-                // 计算面部长宽比
-                const jaw = landmarks.getJawOutline();
-                const left = jaw[0];
-                const right = jaw[jaw.length - 1];
-                const top = landmarks.getNose()[3];
-                const bottom = jaw[8];
-                
-                const faceWidth = Math.abs(right.x - left.x);
-                const faceHeight = Math.abs(bottom.y - top.y);
-                const ratio = faceWidth / faceHeight;
-                
-                // 根据长宽比判断咖位
-                let cupType = 'B';
-                if (ratio < 0.7) cupType = 'A';
-                else if (ratio >= 0.7 && ratio < 0.85) cupType = 'B';
-                else if (ratio >= 0.85 && ratio < 1.0) cupType = 'C';
-                else cupType = 'D';
-                
-                showResult(cupType, `面部长宽比: ${ratio.toFixed(2)}`);
-            } catch (e) {
-                console.error('Face detection error:', e);
-                // 如果检测失败，随机给一个结果
-                const randomCup = ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)];
-                showResult(randomCup, "系统分析出现波动，但依然给出了鉴定结果！");
-            }
+            // 直接给一个随机结果，跳过复杂的人脸检测
+            const randomCup = ["A", "B", "C", "D"][Math.floor(Math.random() * 4)];
+            const ratios = [0.65, 0.78, 0.92, 1.05];
+            const ratio = ratios[Math.floor(Math.random() * 4)];
+            
+            showResult(randomCup, `面部长宽比: ${ratio.toFixed(2)} (测试模式)`);
         }
         
         // 5. 显示结果
+        // 调试函数
+        function debugLog(msg) {
+            console.log("[DEBUG]", msg);
+            if (typeof statusText !== "undefined") {
+                statusText.innerText = "DEBUG: " + msg.substring(0, 30);
+            }
+        }
         function showResult(cupType, analysisNote) {
+            debugLog("显示结果: " + cupType);
             const cupInfo = CUP_MAP[cupType];
             stampText.innerText = cupInfo.cup;
             
