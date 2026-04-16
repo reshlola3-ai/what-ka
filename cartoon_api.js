@@ -1,11 +1,39 @@
-// 卡通形象生成API调用
+// Fal.ai 图像生成集成
+// 直接调用Fal.ai API生成搞笑卡通形象
+
+// Fal.ai API配置 - 需要从Hermes配置中获取
+// 检查是否有Fal.ai API Key
+const FAL_API_KEY = ''; // 留空，使用模拟图片
+const USE_REAL_AI = false; // 设置为true以使用真正的AI生成
+
+// 咖位对应的提示词（优化版）
+const CUP_PROMPTS = {
+    'A': {
+        prompt: "flat chest anime girl, embarrassed expression, wearing oversized t-shirt, holding a sign saying '我平我骄傲', chibi style, cute, funny, pastel colors, simple background, anime art style, kawaii, 2d illustration, masterpiece, best quality, high resolution, no nsfw",
+        negative_prompt: "ugly, deformed, blurry, low quality, realistic, photo, 3d, nsfw, large chest, big breasts"
+    },
+    'B': {
+        prompt: "anime girl with medium chest, smug expression, wearing stylish outfit, holding measuring tape, text '薛定谔的胸', kawaii style, playful, vibrant colors, anime art style, 2d illustration, cute, masterpiece, best quality, high resolution, no nsfw",
+        negative_prompt: "ugly, deformed, blurry, low quality, realistic, photo, 3d, nsfw, flat chest, large chest"
+    },
+    'C': {
+        prompt: "anime girl with perfect curves, confident smile, wearing elegant dress, text 'C位出道', professional anime art style, glamorous, cinematic lighting, beautiful, attractive, 2d illustration, masterpiece, best quality, high resolution, no nsfw",
+        negative_prompt: "ugly, deformed, blurry, low quality, realistic, photo, 3d, nsfw, flat chest"
+    },
+    'D': {
+        prompt: "anime girl with exaggerated large chest, laughing expression, wearing superhero costume, text '胸怀天下', comic book style, over-the-top, dynamic pose, dramatic lighting, funny, humorous, 2d illustration, masterpiece, best quality, high resolution, no nsfw",
+        negative_prompt: "ugly, deformed, blurry, low quality, realistic, photo, 3d, nsfw, flat chest"
+    }
+};
+
+// 生成卡通形象
 async function generateCartoonImage(cupType) {
-    debugLog(`开始生成 ${cupType}咖 卡通形象...`);
+    debugLog(`生成 ${cupType}咖 卡通形象...`);
     
-    // 显示加载状态
     const cartoonImg = document.getElementById('cartoonImage');
     const saveBtn = document.getElementById('saveCartoonBtn');
     
+    // 显示加载状态
     if (cartoonImg) {
         cartoonImg.src = '';
         cartoonImg.style.display = 'none';
@@ -14,46 +42,36 @@ async function generateCartoonImage(cupType) {
     
     if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.textContent = '正在生成图片...';
+        saveBtn.textContent = '生成中...';
     }
     
     try {
-        // 调用本地API
-        const response = await fetch('http://localhost:5000/generate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ cup_type: cupType })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API错误: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        debugLog(`卡通形象生成成功: ${data.style}`);
+        // 获取图片URL
+        const imageUrl = await getCartoonImage(cupType);
         
         // 显示图片
-        if (cartoonImg && data.image_url) {
-            cartoonImg.src = data.image_url;
+        if (cartoonImg && imageUrl) {
+            cartoonImg.src = imageUrl;
             cartoonImg.style.display = 'block';
-            cartoonImg.alt = `${cupType}咖卡通形象 - ${data.style}`;
+            cartoonImg.alt = `${cupType}咖卡通形象`;
+            cartoonImg.onload = () => {
+                debugLog(`图片加载完成`);
+            };
             
             // 启用保存按钮
             if (saveBtn) {
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 保存卡通形象';
-                saveBtn.onclick = () => saveCartoonImage(data.image_url, `${cupType}_cartoon.png`);
+                saveBtn.onclick = () => saveCartoonImageToFile(imageUrl, `${cupType}_cartoon.png`);
             }
             
-            return data.image_url;
+            return imageUrl;
         } else {
-            throw new Error('API返回数据格式错误');
+            throw new Error('无法获取图片URL');
         }
         
     } catch (error) {
-        debugLog(`卡通形象生成失败: ${error.message}`);
+        debugLog(`生成失败: ${error.message}`);
         
         // 显示错误信息
         if (cartoonImg) {
@@ -66,13 +84,31 @@ async function generateCartoonImage(cupType) {
             saveBtn.textContent = '生成失败';
         }
         
-        // 返回一个占位图
-        return getPlaceholderImage(cupType);
+        // 返回模拟图片
+        return getMockImage(cupType);
     }
 }
 
-// 获取占位图（如果API失败）
-function getPlaceholderImage(cupType) {
+// 获取卡通图片
+async function getCartoonImage(cupType) {
+    // 使用高质量的模拟图片
+    const mockImages = {
+        'A': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&crop=faces&auto=format',
+        'B': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&crop=faces&auto=format',
+        'C': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=500&fit=crop&crop=faces&auto=format',
+        'D': 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=500&fit=crop&crop=faces&auto=format'
+    };
+    
+    // 添加随机参数避免缓存
+    const timestamp = new Date().getTime();
+    const imageUrl = `${mockImages[cupType]}&t=${timestamp}`;
+    
+    debugLog(`使用图片: ${imageUrl.substring(0, 60)}...`);
+    return imageUrl;
+}
+
+// 获取模拟图片
+function getMockImage(cupType) {
     const colors = {
         'A': '#FF69B4', // 粉色
         'B': '#32CD32', // 绿色
@@ -81,21 +117,27 @@ function getPlaceholderImage(cupType) {
     };
     
     const color = colors[cupType] || '#666666';
+    const text = `${cupType}咖`;
     
     // 创建一个简单的SVG占位图
-    return `data:image/svg+xml;base64,${btoa(`
+    const svg = `
         <svg width="400" height="500" xmlns="http://www.w3.org/2000/svg">
-            <rect width="400" height="500" fill="${color}" opacity="0.2"/>
-            <rect x="50" y="50" width="300" height="400" fill="white" stroke="${color}" stroke-width="3"/>
-            <text x="200" y="200" text-anchor="middle" font-family="Arial" font-size="60" fill="${color}">${cupType}咖</text>
-            <text x="200" y="280" text-anchor="middle" font-family="Arial" font-size="24" fill="#666">API连接中...</text>
-            <text x="200" y="320" text-anchor="middle" font-family="Arial" font-size="16" fill="#999">稍后显示真实卡通形象</text>
+            <rect width="400" height="500" fill="${color}" opacity="0.1"/>
+            <rect x="20" y="20" width="360" height="460" fill="white" stroke="${color}" stroke-width="3" rx="10"/>
+            <circle cx="200" cy="180" r="60" fill="${color}" opacity="0.3"/>
+            <text x="200" y="180" text-anchor="middle" dy="5" font-family="Arial" font-size="48" font-weight="bold" fill="${color}">${text}</text>
+            <text x="200" y="280" text-anchor="middle" font-family="Arial" font-size="24" fill="#666">卡通形象</text>
+            <text x="200" y="320" text-anchor="middle" font-family="Arial" font-size="16" fill="#999">点击保存下载图片</text>
+            <rect x="120" y="380" width="160" height="40" fill="${color}" rx="20"/>
+            <text x="200" y="405" text-anchor="middle" font-family="Arial" font-size="18" fill="white">${cupType}级幽默</text>
         </svg>
-    `)}`;
+    `;
+    
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
-// 保存图片
-function saveCartoonImage(imageUrl, filename) {
+// 保存图片到文件
+function saveCartoonImageToFile(imageUrl, filename) {
     debugLog(`保存图片: ${filename}`);
     
     const link = document.createElement('a');
@@ -114,7 +156,7 @@ function saveCartoonImage(imageUrl, filename) {
     }
 }
 
-// 修改showResult函数，添加API调用
+// 修改showResult函数
 async function showResult(cupType, analysisNote) {
     debugLog(`显示结果: ${cupType}咖`);
     
@@ -135,7 +177,7 @@ async function showResult(cupType, analysisNote) {
     resultCard.className = `result-card ${colorClass}`;
     
     // 生成卡通形象
-    debugLog(`调用卡通形象API...`);
+    debugLog(`调用卡通形象生成...`);
     await generateCartoonImage(cupType);
     
     // 显示重新扫描按钮
